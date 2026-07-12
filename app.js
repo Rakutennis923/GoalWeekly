@@ -20,9 +20,12 @@ const closingWeights = {
   "議價": 14,
   "帶看": 11,
   "進案": 10,
+  "委託": 10,
   "拜訪": 7,
   "廣告": 5,
-  "DM": 4
+  "發DM": 4,
+  "DM": 4,
+  "掃街": 4
 };
 
 let state = normalizeState(loadState());
@@ -105,11 +108,22 @@ function normalizeState(rawState) {
       performance: Number(storeTarget.performance) || 0,
       listings: Number(storeTarget.listings) || 0
     },
-    goals: (rawState.goals || []).map((goal) => ({
-      ...goal,
-      dueDate: goal.dueDate || getDueDate(goal.meetingDate),
-      inputGroup: goal.inputGroup || goal.meetingDate || goal.createdAt || ""
-    }))
+    goals: (rawState.goals || []).map(normalizeGoal)
+  };
+}
+
+function normalizeGoal(goal) {
+  const meetingDate = normalizeDateValue(goal.meetingDate);
+  const dueDate = normalizeDateValue(goal.dueDate) || getDueDate(meetingDate);
+  const inputGroup = normalizeDateValue(goal.inputGroup) || meetingDate || normalizeDateValue(goal.createdAt) || "";
+
+  return {
+    ...goal,
+    meetingDate,
+    dueDate,
+    inputGroup,
+    target: Number(goal.target) || 0,
+    actual: Number(goal.actual) || 0
   };
 }
 
@@ -133,8 +147,9 @@ async function refreshFromCloud() {
 
     state = normalizeState({
       ...state,
-      goals: data.goals.filter(hasRequiredGoalFields)
+      goals: data.goals
     });
+    state.goals = state.goals.filter(hasRequiredGoalFields);
     saveState();
     render();
     setSyncStatus(`已連上 Google Sheet，共 ${state.goals.length} 筆小目標`);
@@ -227,7 +242,7 @@ function finishCurrentPerson() {
 function render() {
   const month = els.monthFilter.value;
   const goals = state.goals
-    .filter((goal) => monthKey(new Date(`${goal.meetingDate}T00:00:00`)) === month)
+    .filter((goal) => goalMonthKey(goal) === month)
     .map((goal) => ({ ...goal, inputGroup: goal.inputGroup || goal.meetingDate }));
   renderTeam(goals);
   renderConfirm(goals);
@@ -493,7 +508,8 @@ function closingChance(goals) {
 }
 
 function getDueDate(dateValue) {
-  const date = new Date(`${dateValue}T00:00:00`);
+  const normalizedDate = normalizeDateValue(dateValue);
+  const date = new Date(`${normalizedDate}T00:00:00`);
   date.setDate(date.getDate() + (date.getDay() === 4 ? 4 : 3));
   return isoDate(date);
 }
@@ -509,6 +525,27 @@ function percent(done, total) {
 
 function monthKey(date) {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+}
+
+function goalMonthKey(goal) {
+  const normalizedDate = normalizeDateValue(goal.meetingDate);
+  if (!normalizedDate) return "";
+  return normalizedDate.slice(0, 7);
+}
+
+function normalizeDateValue(value) {
+  if (!value) return "";
+  if (value instanceof Date && !Number.isNaN(value.getTime())) return isoDate(value);
+
+  const text = String(value).trim();
+  const ymd = text.match(/^(\d{4})[-/](\d{1,2})[-/](\d{1,2})/);
+  if (ymd) {
+    return `${ymd[1]}-${String(ymd[2]).padStart(2, "0")}-${String(ymd[3]).padStart(2, "0")}`;
+  }
+
+  const parsed = new Date(text);
+  if (!Number.isNaN(parsed.getTime())) return isoDate(parsed);
+  return "";
 }
 
 function isoDate(date) {
@@ -528,7 +565,7 @@ function switchTab(id) {
 
 function exportData() {
   const month = els.monthFilter.value || monthKey(new Date());
-  const goals = state.goals.filter((goal) => monthKey(new Date(`${goal.meetingDate}T00:00:00`)) === month);
+  const goals = state.goals.filter((goal) => goalMonthKey(goal) === month);
   const rows = monthlyStatRows(goals);
   const html = buildExcelHtml(month, rows);
   const blob = new Blob(["\ufeff", html], { type: "application/vnd.ms-excel;charset=utf-8" });
