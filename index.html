@@ -1,0 +1,144 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>大湳店小目標追蹤</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <main class="app-shell">
+    <section class="topbar" aria-label="本週資訊">
+      <div>
+        <p class="eyebrow">每週一、四會議追蹤</p>
+        <h1>大湳店小目標追蹤</h1>
+      </div>
+      <div class="quote-card">
+        <span>本週金句</span>
+        <strong id="weeklyQuote">載入中</strong>
+      </div>
+    </section>
+
+    <section class="control-band" aria-label="主要設定">
+      <label>
+        統計月份
+        <input id="monthFilter" type="month">
+      </label>
+      <label>
+        大湳店月目標：業績（萬元）
+        <input id="storePerformanceTarget" type="number" min="0" step="1" value="0">
+      </label>
+      <label>
+        大湳店月目標：進案（件）
+        <input id="storeListingTarget" type="number" min="0" step="1" value="0">
+      </label>
+      <div class="actions">
+        <button id="exportBtn" type="button">匯出月底統計 Excel</button>
+        <label class="file-button">
+          匯入資料
+          <input id="importFile" type="file" accept="application/json">
+        </label>
+        <button id="clearBtn" class="danger" type="button">清空</button>
+      </div>
+    </section>
+
+    <div id="syncStatus" class="sync-status" role="status">資料同步準備中</div>
+
+    <nav class="tabs" aria-label="頁面切換">
+      <button class="tab active" data-tab="entry" type="button">新增小目標</button>
+      <button class="tab" data-tab="team" type="button">夥伴目標頁</button>
+      <button class="tab" data-tab="confirm" type="button">週一四確認</button>
+      <button class="tab" data-tab="stats" type="button">月底統計</button>
+    </nav>
+
+    <section id="entry" class="view active" aria-labelledby="entryTitle">
+      <div class="split">
+        <form id="goalForm" class="panel">
+          <h2 id="entryTitle">同一夥伴可連續輸入多個小目標</h2>
+          <p class="form-note">星期一設定到星期四之前的小目標，星期四設定到下星期一的小目標</p>
+          <div class="form-grid">
+            <label>
+              夥伴姓名
+              <input id="personName" required autocomplete="name" placeholder="例：王小明">
+            </label>
+            <label>
+              會議日期
+              <input id="meetingDate" type="date" required>
+            </label>
+            <label>
+              小目標項目
+              <select id="goalType">
+                <option>進案</option>
+                <option>帶看</option>
+                <option>議價</option>
+                <option>廣告</option>
+                <option>拜訪</option>
+                <option>DM</option>
+                <option>收斡</option>
+                <option>成交</option>
+                <option value="custom">自訂</option>
+              </select>
+            </label>
+            <label id="customTypeWrap" class="hidden">
+              自訂項目
+              <input id="customType" placeholder="例：社區經營">
+            </label>
+            <label>
+              目標數字
+              <input id="targetCount" type="number" min="1" required value="1">
+            </label>
+            <label class="wide">
+              備註
+              <input id="goalNote" placeholder="例：A社區屋主拜訪、591廣告更新">
+            </label>
+          </div>
+          <div class="form-actions">
+            <button class="primary" type="submit">加入這位夥伴的小目標</button>
+            <button id="finishPersonBtn" type="button">完成這位夥伴，換下一位</button>
+          </div>
+        </form>
+
+        <aside class="panel helper">
+          <h2>連續輸入更快</h2>
+          <p>同一位夥伴只要輸入一次姓名，新增後姓名、會議日期會保留，可以直接繼續加下一個小目標。</p>
+          <p>按「完成這位夥伴，換下一位」會清空姓名與小目標欄位。</p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="team" class="view" aria-labelledby="teamTitle">
+      <div class="section-head">
+        <h2 id="teamTitle">每位夥伴的小目標</h2>
+        <p>每個人依輸入日期分頁，最新輸入放第 1 頁。</p>
+      </div>
+      <div id="teamBoard" class="person-grid"></div>
+    </section>
+
+    <section id="confirm" class="view" aria-labelledby="confirmTitle">
+      <div class="section-head">
+        <h2 id="confirmTitle">週一、四達成確認</h2>
+        <p>依夥伴姓名與最新會議日期排列，方便店長逐一確認。</p>
+      </div>
+      <div id="confirmList" class="goal-table-wrap"></div>
+    </section>
+
+    <section id="stats" class="view" aria-labelledby="statsTitle">
+      <div class="section-head">
+        <h2 id="statsTitle">月底統計與成交機率</h2>
+        <p>成交機率為依完成項目加權的預估值，用來看趨勢，不是保證結果。</p>
+      </div>
+      <div id="storeTargetSummary" class="target-summary"></div>
+      <div id="statsBoard" class="stats-grid"></div>
+    </section>
+  </main>
+
+  <template id="emptyTemplate">
+    <div class="empty-state">
+      <strong>目前還沒有資料</strong>
+      <span>先到「新增小目標」輸入夥伴姓名與項目。</span>
+    </div>
+  </template>
+
+  <script src="app.js"></script>
+</body>
+</html>
