@@ -115,8 +115,11 @@
             </label>
           </div>
           <div class="form-actions">
-            <button class="primary" type="submit">加入這位夥伴的小目標</button>
-            <button id="finishPersonBtn" type="button">完成這位夥伴，換下一位</button>
+            <div class="add-goal-action">
+              <button class="primary" type="submit">加入此小目標</button>
+              <span>可繼續加小目標哦</span>
+            </div>
+            <button id="finishPersonBtn" type="button">輸入完成，換下一位</button>
           </div>
           <div id="currentGoalSummary" class="current-goal-summary" aria-live="polite"></div>
         </form>
@@ -124,7 +127,7 @@
         <aside class="panel helper">
           <h2>連續輸入更快</h2>
           <p>同一位夥伴只要輸入一次姓名，新增後姓名、會議日期會保留，可以直接繼續加下一個小目標。</p>
-          <p>按「完成這位夥伴，換下一位」會清空姓名與小目標欄位。</p>
+          <p>按「加入此小目標」後，可繼續輸入同一位夥伴的其他小目標；全部輸入完成後，再按「輸入完成，換下一位」。</p>
         </aside>
       </div>
     </section>
