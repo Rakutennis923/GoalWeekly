@@ -103,6 +103,9 @@
                 <option>掃街</option>
                 <option>收斡</option>
                 <option>成交</option>
+                <option>上課學習</option>
+                <option>社區經營</option>
+                <option>人際Social</option>
                 <option value="custom">自訂</option>
               </select>
             </label>
@@ -129,6 +132,7 @@
           <h2>連續輸入更快</h2>
           <p>同一位夥伴只要輸入一次姓名，新增後姓名、會議日期會保留，可以直接繼續加下一個小目標。</p>
           <p>按「完成這位夥伴，換下一位」會清空姓名與小目標欄位。</p>
+          <div id="currentGoalSummary" class="current-goal-summary" aria-live="polite"></div>
         </aside>
       </div>
     </section>
@@ -146,7 +150,7 @@
         <h2 id="confirmTitle">週一、四達成確認</h2>
         <p>依夥伴姓名與最新會議日期排列，方便店長逐一確認。</p>
       </div>
-      <div id="confirmList" class="goal-table-wrap"></div>
+      <div id="confirmList" class="person-grid"></div>
     </section>
 
     <section id="stats" class="view" aria-labelledby="statsTitle">

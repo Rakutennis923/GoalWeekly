@@ -44,6 +44,7 @@ const els = {
   targetCount: document.querySelector("#targetCount"),
   goalNote: document.querySelector("#goalNote"),
   finishPersonBtn: document.querySelector("#finishPersonBtn"),
+  currentGoalSummary: document.querySelector("#currentGoalSummary"),
   teamBoard: document.querySelector("#teamBoard"),
   confirmList: document.querySelector("#confirmList"),
   statsBoard: document.querySelector("#statsBoard"),
@@ -79,6 +80,8 @@ function init() {
 
   els.monthFilter.addEventListener("change", render);
   els.goalForm.addEventListener("submit", addGoal);
+  els.personName.addEventListener("change", renderCurrentGoalSummary);
+  els.meetingDate.addEventListener("change", renderCurrentGoalSummary);
   els.finishPersonBtn.addEventListener("click", finishCurrentPerson);
   els.exportBtn.addEventListener("click", exportData);
   els.importFile.addEventListener("change", importData);
@@ -222,6 +225,7 @@ async function addGoal(event) {
   resetGoalFieldsOnly();
   render();
   els.goalType.focus();
+  renderCurrentGoalSummary();
   await syncAction("addGoal", { goal }, "小目標已同步到 Google Sheet");
 }
 
@@ -236,7 +240,16 @@ function resetGoalFieldsOnly() {
 function finishCurrentPerson() {
   els.personName.value = "";
   resetGoalFieldsOnly();
+  renderCurrentGoalSummary();
   els.personName.focus();
+}
+
+function renderCurrentGoalSummary() {
+  if (!els.currentGoalSummary) return;
+  const goals = state.goals.filter((goal) => goal.person === els.personName.value && goal.meetingDate === els.meetingDate.value);
+  els.currentGoalSummary.innerHTML = goals.length
+    ? `<strong>本次已輸入</strong><div>${goals.map((goal) => `<span>${escapeHtml(goal.type)} ${goal.target}</span>`).join("")}</div>`
+    : `<span class="small">選擇夥伴後，這裡會顯示本次已輸入的小目標。</span>`;
 }
 
 function render() {
@@ -247,6 +260,7 @@ function render() {
   renderTeam(goals);
   renderConfirm(goals);
   renderStats(goals);
+  renderCurrentGoalSummary();
 }
 
 function renderTeam(goals) {
@@ -286,7 +300,7 @@ function renderTeam(goals) {
               <span>本頁 ${batch.goals.length} 個小目標</span>
             </div>
             <ul class="goal-list">
-              ${batch.goals.map(goalItemHtml).join("")}
+              ${batch.goals.map(editableGoalItemHtml).join("")}
             </ul>
           </section>
         `).join("")}
@@ -297,6 +311,55 @@ function renderTeam(goals) {
   els.teamBoard.querySelectorAll(".batch-tab").forEach((button) => {
     button.addEventListener("click", () => switchBatchPage(button));
   });
+  els.teamBoard.querySelectorAll("[data-edit-goal]").forEach((button) => button.addEventListener("click", () => toggleGoalEditor(button.dataset.editGoal, true)));
+  els.teamBoard.querySelectorAll("[data-cancel-edit]").forEach((button) => button.addEventListener("click", () => toggleGoalEditor(button.dataset.cancelEdit, false)));
+  els.teamBoard.querySelectorAll("[data-save-goal]").forEach((button) => button.addEventListener("click", () => saveGoalEdit(button.dataset.saveGoal)));
+  els.teamBoard.querySelectorAll("[data-delete-goal]").forEach((button) => button.addEventListener("click", () => deleteGoal(button.dataset.deleteGoal)));
+}
+
+function editableGoalItemHtml(goal) {
+  return `<li class="goal-item" data-goal-card="${goal.id}">
+    <div class="goal-display">${goalItemHtml(goal).replace(/^\s*<li class="goal-item">|<\/li>\s*$/g, "")}
+      <div class="goal-actions"><button type="button" data-edit-goal="${goal.id}">修改</button><button class="delete-btn" type="button" data-delete-goal="${goal.id}">刪除</button></div>
+    </div>
+    <div class="goal-editor hidden"><div class="edit-grid">
+      <label>項目<input data-edit-type value="${escapeHtml(goal.type)}"></label>
+      <label>目標<input data-edit-target type="number" min="1" value="${goal.target}"></label>
+      <label>會議日期<input data-edit-date type="date" value="${goal.meetingDate}"></label>
+      <label>備註<input data-edit-note value="${escapeHtml(goal.note || "")}"></label>
+    </div><div class="goal-actions"><button class="primary" type="button" data-save-goal="${goal.id}">儲存修改</button><button type="button" data-cancel-edit="${goal.id}">取消</button></div></div>
+  </li>`;
+}
+
+function toggleGoalEditor(id, editing) {
+  const card = els.teamBoard.querySelector(`[data-goal-card="${id}"]`);
+  if (!card) return;
+  card.querySelector(".goal-display").classList.toggle("hidden", editing);
+  card.querySelector(".goal-editor").classList.toggle("hidden", !editing);
+}
+
+async function saveGoalEdit(id) {
+  const goal = state.goals.find((item) => item.id === id);
+  const card = els.teamBoard.querySelector(`[data-goal-card="${id}"]`);
+  if (!goal || !card) return;
+  const type = card.querySelector("[data-edit-type]").value.trim();
+  const meetingDate = card.querySelector("[data-edit-date]").value;
+  if (!type || !meetingDate) return alert("項目與會議日期不能空白");
+  goal.type = type;
+  goal.target = Math.max(1, Number(card.querySelector("[data-edit-target]").value) || 1);
+  goal.meetingDate = meetingDate;
+  goal.inputGroup = meetingDate;
+  goal.dueDate = getDueDate(meetingDate);
+  goal.note = card.querySelector("[data-edit-note]").value.trim();
+  saveState(); render();
+  await syncAction("updateGoal", { goal }, "小目標修改已同步到 Google Sheet");
+}
+
+async function deleteGoal(id) {
+  if (!confirm("確定刪除這個小目標嗎？")) return;
+  state.goals = state.goals.filter((goal) => goal.id !== id);
+  saveState(); render();
+  await syncAction("deleteGoal", { id }, "小目標已從 Google Sheet 刪除");
 }
 
 function groupByInputBatch(goals) {
@@ -345,45 +408,18 @@ function goalItemHtml(goal) {
 }
 
 function renderConfirm(goals) {
-  const sortedGoals = [...goals].sort(compareConfirmOrder);
-  if (!sortedGoals.length) {
+  const grouped = groupByPerson(goals);
+  if (!Object.keys(grouped).length) {
     els.confirmList.innerHTML = "";
     els.confirmList.append(emptyNode());
     return;
   }
-
-  els.confirmList.innerHTML = `
-    <table>
-      <thead>
-        <tr>
-          <th>夥伴</th>
-          <th>最新會議日期</th>
-          <th>項目</th>
-          <th>目標</th>
-          <th>實際完成</th>
-          <th>會議日期</th>
-          <th>期限</th>
-          <th>狀態</th>
-          <th>操作</th>
-        </tr>
-      </thead>
-      <tbody>
-        ${sortedGoals.map((goal) => `
-          <tr>
-            <td data-label="夥伴">${escapeHtml(goal.person)}</td>
-            <td data-label="最新會議日期">${goal.meetingDate}</td>
-            <td data-label="項目">${escapeHtml(goal.type)}</td>
-            <td data-label="目標">${goal.target}</td>
-            <td data-label="實際完成"><input type="number" min="0" value="${goal.actual}" data-actual="${goal.id}"></td>
-            <td data-label="會議日期">${goal.meetingDate}</td>
-            <td data-label="期限">${goal.dueDate}</td>
-            <td data-label="狀態"><span class="badge ${isDone(goal) ? "gold" : ""}">${isDone(goal) ? "已達成" : "未達成"}</span></td>
-            <td data-label="操作"><button class="delete-btn" type="button" data-delete="${goal.id}">刪除</button></td>
-          </tr>
-        `).join("")}
-      </tbody>
-    </table>
-  `;
+  els.confirmList.innerHTML = Object.entries(grouped)
+    .sort((a,b) => latestDate(b[1]).localeCompare(latestDate(a[1])) || a[0].localeCompare(b[0], "zh-Hant"))
+    .map(([person, personGoals]) => `<article class="person-card"><div class="card-head"><h3>${escapeHtml(person)}</h3><span class="badge">${personGoals.filter(isDone).length}/${personGoals.length}</span></div>
+      ${groupByInputBatch(personGoals).map((batch) => `<section class="confirm-date-card"><div class="batch-head"><strong>${batch.key}</strong><span>本日 ${batch.goals.length} 項</span></div><ul class="goal-list">
+        ${batch.goals.map((goal) => `<li class="goal-item"><div class="goal-title"><span>${escapeHtml(goal.type)} ${goal.target}</span><span class="badge ${isDone(goal) ? "gold" : ""}">${isDone(goal) ? "已達成" : "未達成"}</span></div><label class="actual-control">實際完成 <input type="number" min="0" value="${goal.actual}" data-actual="${goal.id}"></label><div class="meta">期限 ${goal.dueDate}</div>${goal.note ? `<div class="small">${escapeHtml(goal.note)}</div>` : ""}</li>`).join("")}
+      </ul></section>`).join("")}</article>`).join("");
 
   els.confirmList.querySelectorAll("[data-actual]").forEach((input) => {
     input.addEventListener("change", async () => {
@@ -396,15 +432,6 @@ function renderConfirm(goals) {
     });
   });
 
-  els.confirmList.querySelectorAll("[data-delete]").forEach((button) => {
-    button.addEventListener("click", async () => {
-      const id = button.dataset.delete;
-      state.goals = state.goals.filter((goal) => goal.id !== button.dataset.delete);
-      saveState();
-      render();
-      await syncAction("deleteGoal", { id }, "資料已從 Google Sheet 刪除");
-    });
-  });
 }
 
 function renderStats(goals) {
@@ -499,12 +526,20 @@ function summarizeTypes(goals) {
 
 function closingChance(goals) {
   if (!goals.length) return 0;
-  const completedScore = goals.reduce((score, goal) => {
-    const completionRatio = Math.min(1, goal.actual / goal.target);
-    return score + completionRatio * (closingWeights[goal.type] || 6);
-  }, 0);
-  const consistencyBonus = goals.filter(isDone).length * 3;
-  return Math.min(95, Math.round(12 + completedScore + consistencyBonus));
+  const counts = goals.reduce((sum, goal) => {
+    sum[goal.type] = (sum[goal.type] || 0) + Math.max(0, Number(goal.actual) || 0);
+    return sum;
+  }, {});
+  const listings = (counts["進案"] || 0) + (counts["委託"] || 0);
+  const showings = counts["帶看"] || 0;
+  const negotiations = counts["議價"] || 0;
+  const offers = counts["收斡"] || 0;
+  const deals = counts["成交"] || 0;
+  const prospecting = (counts["拜訪"] || 0) + (counts["社區經營"] || 0) + (counts["人際Social"] || 0);
+  const funnelScore = Math.min(22, listings * 4) + Math.min(28, showings * 3.5) + Math.min(18, negotiations * 6) + Math.min(22, offers * 11);
+  const supportScore = Math.min(5, prospecting * 0.5);
+  const activeDates = new Set(goals.filter((goal) => Number(goal.actual) > 0).map((goal) => goal.meetingDate)).size;
+  return Math.min(98, Math.round(deals > 0 ? 90 + Math.min(8, deals * 2) : funnelScore + supportScore + Math.min(5, activeDates * 1.5)));
 }
 
 function getDueDate(dateValue) {
