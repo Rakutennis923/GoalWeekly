@@ -32,14 +32,6 @@
         大湳店月目標：進案（件）
         <input id="storeListingTarget" type="number" min="0" step="1" value="0">
       </label>
-      <div class="actions">
-        <button id="exportBtn" type="button">匯出月底統計 Excel</button>
-        <label class="file-button">
-          匯入資料
-          <input id="importFile" type="file" accept="application/json">
-        </label>
-        <button id="clearBtn" class="danger" type="button">清空</button>
-      </div>
     </section>
 
     <div id="syncStatus" class="sync-status" role="status">資料同步準備中</div>
@@ -160,6 +152,18 @@
       </div>
       <div id="storeTargetSummary" class="target-summary"></div>
       <div id="statsBoard" class="stats-grid"></div>
+    </section>
+
+    <section class="utility-footer" aria-label="資料工具">
+      <span>資料工具</span>
+      <div class="actions">
+        <button id="exportBtn" type="button">匯出月底統計 Excel</button>
+        <label class="file-button">
+          匯入資料
+          <input id="importFile" type="file" accept="application/json">
+        </label>
+        <button id="clearBtn" class="danger" type="button">清空</button>
+      </div>
     </section>
   </main>
 

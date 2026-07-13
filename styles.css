@@ -48,6 +48,30 @@ button:hover,
   border-color: var(--green);
 }
 
+.control-band input.target-filled {
+  background: var(--red);
+  color: #ffe56b;
+  border-color: #8f1b13;
+  font-weight: 900;
+}
+
+.utility-footer {
+  margin-top: 28px;
+  padding: 16px;
+  border-top: 1px solid var(--line);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 14px;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 640px) {
+  .utility-footer { align-items: stretch; flex-direction: column; }
+  .utility-footer .actions { display: grid; grid-template-columns: 1fr; }
+}
+
 .app-shell {
   width: min(1180px, calc(100% - 32px));
   margin: 0 auto;

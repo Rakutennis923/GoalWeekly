@@ -64,6 +64,7 @@ function init() {
   els.meetingDate.value = isoDate(today);
   els.storePerformanceTarget.value = state.storeTarget.performance;
   els.storeListingTarget.value = state.storeTarget.listings;
+  updateTargetInputStyles();
   els.weeklyQuote.textContent = quotes[getWeekNumber(today) % quotes.length];
 
   document.querySelectorAll(".tab").forEach((tab) => {
@@ -150,9 +151,13 @@ async function refreshFromCloud() {
 
     state = normalizeState({
       ...state,
+      storeTarget: data.storeTarget || data.storeTargets || state.storeTarget,
       goals: data.goals
     });
     state.goals = state.goals.filter(hasRequiredGoalFields);
+    els.storePerformanceTarget.value = state.storeTarget.performance;
+    els.storeListingTarget.value = state.storeTarget.listings;
+    updateTargetInputStyles();
     saveState();
     render();
     setSyncStatus(`已連上 Google Sheet，共 ${state.goals.length} 筆小目標`);
@@ -190,13 +195,21 @@ function hasRequiredGoalFields(goal) {
   return goal && goal.id && goal.person && goal.meetingDate && goal.type;
 }
 
-function updateStoreTarget() {
+async function updateStoreTarget() {
   state.storeTarget = {
     performance: Math.max(0, Number(els.storePerformanceTarget.value) || 0),
     listings: Math.max(0, Number(els.storeListingTarget.value) || 0)
   };
   saveState();
+  updateTargetInputStyles();
   render();
+  await syncAction("updateStoreTarget", { storeTarget: state.storeTarget }, "大湳店月目標已同步到 Google Sheet");
+}
+
+function updateTargetInputStyles() {
+  [els.storePerformanceTarget, els.storeListingTarget].forEach((input) => {
+    input.classList.toggle("target-filled", Number(input.value) > 0);
+  });
 }
 
 async function addGoal(event) {
@@ -249,7 +262,7 @@ function renderCurrentGoalSummary() {
   const goals = state.goals.filter((goal) => goal.person === els.personName.value && goal.meetingDate === els.meetingDate.value);
   els.currentGoalSummary.innerHTML = goals.length
     ? `<strong>本次已輸入</strong><div>${goals.map((goal) => `<span>${escapeHtml(goal.type)} ${goal.target}</span>`).join("")}</div>`
-    : `<span class="small">選擇夥伴後，這裡會顯示本次已輸入的小目標。</span>`;
+    : "";
 }
 
 function render() {
@@ -689,6 +702,7 @@ function importData(event) {
       state = normalizeState(imported);
       els.storePerformanceTarget.value = state.storeTarget.performance;
       els.storeListingTarget.value = state.storeTarget.listings;
+      updateTargetInputStyles();
       saveState();
       render();
     } catch (error) {
