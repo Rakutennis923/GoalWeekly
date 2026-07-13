@@ -429,10 +429,11 @@ function renderConfirm(goals) {
   }
   els.confirmList.innerHTML = Object.entries(grouped)
     .sort((a,b) => latestDate(b[1]).localeCompare(latestDate(a[1])) || a[0].localeCompare(b[0], "zh-Hant"))
-    .map(([person, personGoals]) => `<article class="person-card"><div class="card-head"><h3>${escapeHtml(person)}</h3><span class="badge">${personGoals.filter(isDone).length}/${personGoals.length}</span></div>
-      ${groupByInputBatch(personGoals).map((batch) => `<section class="confirm-date-card"><div class="batch-head"><strong>${batch.key}</strong><span>本日 ${batch.goals.length} 項</span></div><ul class="goal-list">
-        ${batch.goals.map((goal) => `<li class="goal-item"><div class="goal-title"><span>${escapeHtml(goal.type)} ${goal.target}</span><span class="badge ${isDone(goal) ? "gold" : ""}">${isDone(goal) ? "已達成" : "未達成"}</span></div><label class="actual-control">實際完成 <input type="number" min="0" value="${goal.actual}" data-actual="${goal.id}"></label><div class="meta">期限 ${goal.dueDate}</div>${goal.note ? `<div class="small">${escapeHtml(goal.note)}</div>` : ""}</li>`).join("")}
-      </ul></section>`).join("")}</article>`).join("");
+    .map(([person, personGoals]) => confirmPersonCardHtml(person, personGoals)).join("");
+
+  els.confirmList.querySelectorAll(".confirm-batch-tab").forEach((button) => {
+    button.addEventListener("click", () => switchConfirmPage(button));
+  });
 
   els.confirmList.querySelectorAll("[data-actual]").forEach((input) => {
     input.addEventListener("change", async () => {
@@ -445,6 +446,27 @@ function renderConfirm(goals) {
     });
   });
 
+}
+
+function confirmPersonCardHtml(person, personGoals) {
+  const batches = groupByInputBatch(personGoals);
+  return `<article class="person-card confirm-person-card">
+    <div class="card-head"><div><h3>${escapeHtml(person)}</h3><div class="meta">共 ${batches.length} 個日期頁面</div></div><span class="badge">${personGoals.filter(isDone).length}/${personGoals.length}</span></div>
+    <div class="batch-tabs" role="tablist" aria-label="${escapeHtml(person)} 的確認日期">
+      ${batches.map((batch, index) => `<button class="batch-tab confirm-batch-tab ${index === 0 ? "active" : ""}" type="button" data-confirm-person="${escapeHtml(person)}" data-confirm-batch="${batch.key}">第 ${index + 1} 頁<br><small>${batch.key}</small></button>`).join("")}
+    </div>
+    ${batches.map((batch, index) => `<section class="batch-page confirm-batch-page ${index === 0 ? "active" : ""}" data-confirm-person-page="${escapeHtml(person)}" data-confirm-batch-page="${batch.key}"><div class="batch-head"><strong>${batch.key}</strong><span>本日 ${batch.goals.length} 項</span></div><ul class="goal-list">
+      ${batch.goals.map((goal) => `<li class="goal-item"><div class="goal-title"><span>${escapeHtml(goal.type)} ${goal.target}</span><span class="badge ${isDone(goal) ? "gold" : ""}">${isDone(goal) ? "已達成" : "未達成"}</span></div><label class="actual-control">實際完成 <input type="number" min="0" value="${goal.actual}" data-actual="${goal.id}"></label><div class="meta">期限 ${goal.dueDate}</div>${goal.note ? `<div class="small">${escapeHtml(goal.note)}</div>` : ""}</li>`).join("")}
+    </ul></section>`).join("")}
+  </article>`;
+}
+
+function switchConfirmPage(button) {
+  const card = button.closest(".confirm-person-card");
+  const person = button.dataset.confirmPerson;
+  const batch = button.dataset.confirmBatch;
+  card.querySelectorAll(".confirm-batch-tab").forEach((tab) => tab.classList.toggle("active", tab.dataset.confirmPerson === person && tab.dataset.confirmBatch === batch));
+  card.querySelectorAll(".confirm-batch-page").forEach((page) => page.classList.toggle("active", page.dataset.confirmPersonPage === person && page.dataset.confirmBatchPage === batch));
 }
 
 function renderStats(goals) {
@@ -464,7 +486,7 @@ function renderStats(goals) {
   }
 
   Object.entries(grouped)
-    .sort((a, b) => latestDate(b[1]).localeCompare(latestDate(a[1])) || a[0].localeCompare(b[0], "zh-Hant"))
+    .sort((a, b) => compareNamesByStroke(a[0], b[0]))
     .forEach(([person, personGoals]) => {
       const completedGoals = personGoals.filter(isDone);
       const byType = summarizeTypes(personGoals);
@@ -500,6 +522,32 @@ function renderStats(goals) {
       `;
       els.statsBoard.append(card);
     });
+}
+
+function compareNamesByStroke(nameA, nameB) {
+  const surnameStrokes = {
+    "王": 4,
+    "冷": 7,
+    "余": 7,
+    "宋": 7,
+    "林": 8,
+    "胡": 9,
+    "徐": 10,
+    "詹": 13,
+    "劉": 15,
+    "潘": 15,
+    "陳": 16,
+    "鍾": 17,
+    "謝": 17,
+    "簡": 18,
+    "魏": 18
+  };
+  const surnameA = Array.from(String(nameA).trim())[0] || "";
+  const surnameB = Array.from(String(nameB).trim())[0] || "";
+  const strokesA = surnameStrokes[surnameA] ?? 999;
+  const strokesB = surnameStrokes[surnameB] ?? 999;
+  if (strokesA !== strokesB) return strokesA - strokesB;
+  return String(nameA).localeCompare(String(nameB), "zh-Hant");
 }
 
 function compareConfirmOrder(a, b) {
