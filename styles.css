@@ -523,6 +523,66 @@ tr:last-child td {
   margin: 4px 0 0;
 }
 
+.monthly-performance-line,
+.compact-stat-line {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 8px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.monthly-performance-line {
+  border: 1px solid #bfd7c9;
+  background: #eef8f2;
+  color: #355747;
+}
+
+.monthly-performance-line span:last-child {
+  border-left: 1px solid #bfd7c9;
+  padding-left: 12px;
+}
+
+.monthly-performance-line strong {
+  color: var(--green);
+  white-space: nowrap;
+}
+
+.annual-performance-line {
+  margin: 8px 0;
+  border: 1px solid #f0b9b9;
+  border-radius: 8px;
+  background: #fff4f4;
+  color: var(--red);
+  font-weight: 900;
+  padding: 9px 12px;
+}
+
+.annual-performance-line strong {
+  font-size: 20px;
+}
+
+.compact-stat-line {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin-bottom: 10px;
+  border: 1px solid #b8d4ef;
+  background: #f1f7fd;
+  color: var(--blue);
+  text-align: center;
+  font-weight: 800;
+}
+
+.compact-stat-line span + span {
+  border-left: 1px solid #b8d4ef;
+}
+
+.compact-stat-line strong {
+  display: block;
+  margin-top: 2px;
+  font-size: 20px;
+}
+
 .target-summary {
   margin-bottom: 14px;
 }
@@ -531,21 +591,36 @@ tr:last-child td {
   background: var(--panel);
   border: 1px solid var(--line);
   border-radius: 8px;
-  padding: 14px 16px;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 12px 18px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  overflow: hidden;
 }
 
-.target-box span {
+.target-half {
+  min-width: 0;
+  padding: 16px 18px;
+  display: grid;
+  align-content: center;
+  gap: 12px;
+}
+
+.target-half + .target-half {
+  border-left: 1px solid var(--line);
+  background: #eef8f2;
+}
+
+.target-half span {
   color: var(--muted);
   font-size: 13px;
   font-weight: 800;
 }
 
-.target-box strong {
+.target-half strong {
   font-size: 18px;
+}
+
+.target-actual-half strong {
+  color: var(--green);
 }
 
 .stat-box {
@@ -629,6 +704,21 @@ tr:last-child td {
   .performance-row,
   .stat-row {
     grid-template-columns: 1fr;
+  }
+
+  .monthly-performance-line {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    font-size: 12px;
+  }
+
+  .compact-stat-line {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    padding-inline: 6px;
+    font-size: 11px;
+  }
+
+  .compact-stat-line strong {
+    font-size: 18px;
   }
 
   .actions {

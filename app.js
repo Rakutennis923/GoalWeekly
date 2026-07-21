@@ -183,7 +183,8 @@ async function refreshBusinessPerformance() {
       month: Number(record.month) || 0,
       partnerName: normalizePersonName(record.partnerName),
       annualRevenueTarget: Number(record.annualRevenueTarget) || 0,
-      actualRevenue: Number(record.actualRevenue) || 0
+      actualRevenue: Number(record.actualRevenue) || 0,
+      actualListings: Number(record.actualListings) || 0
     }));
     render();
   } catch (error) {
@@ -497,11 +498,22 @@ function switchConfirmPage(button) {
 function renderStats(goals) {
   const grouped = groupByPerson(goals);
   els.statsBoard.innerHTML = "";
+  const [selectedYear, selectedMonth] = String(els.monthFilter.value || "").split("-").map(Number);
+  const currentMonthPerformance = businessPartners.filter((record) => record.year === selectedYear && record.month === selectedMonth);
+  const currentRevenue = currentMonthPerformance.reduce((sum, record) => sum + (Number(record.actualRevenue) || 0), 0);
+  const currentListings = currentMonthPerformance.reduce((sum, record) => sum + (Number(record.actualListings) || 0), 0);
   els.storeTargetSummary.innerHTML = `
     <div class="target-box">
-      <span>大湳店月目標</span>
-      <strong>業績 ${state.storeTarget.performance} 萬元</strong>
-      <strong>進案 ${state.storeTarget.listings} 件</strong>
+      <div class="target-half target-goal-half">
+        <span>大湳店月目標</span>
+        <strong>業績 ${state.storeTarget.performance} 萬元</strong>
+        <strong>進案 ${state.storeTarget.listings} 件</strong>
+      </div>
+      <div class="target-half target-actual-half">
+        <span>本月業績</span>
+        <strong>目前業績 ${formatMoney(currentRevenue)} 萬元</strong>
+        <strong>目前進案 ${currentListings} 件</strong>
+      </div>
     </div>
   `;
 
@@ -528,24 +540,15 @@ function renderStats(goals) {
           </div>
           <span class="badge">${completedGoals.length} / ${personGoals.length}</span>
         </div>
-        <div class="performance-row">
-          <div class="performance-box"><div class="small">當月業績目標</div><p class="performance-number">${formatMoney(performance.monthlyTarget)} 萬</p></div>
-          <div class="performance-box"><div class="small">當月目前業績</div><p class="performance-number">${formatMoney(performance.monthlyRevenue)} 萬</p></div>
-          <div class="performance-box"><div class="small">年度累計業績</div><p class="performance-number">${formatMoney(performance.yearToDateRevenue)} 萬</p></div>
+        <div class="monthly-performance-line">
+          <span>本月業績目標 <strong>${formatMoney(performance.monthlyTarget)} 萬</strong></span>
+          <span>本月業績 <strong>${formatMoney(performance.monthlyRevenue)} 萬</strong></span>
         </div>
-        <div class="stat-row">
-          <div class="stat-box">
-            <div class="small">完成小目標</div>
-            <p class="stat-number">${completedGoals.length}</p>
-          </div>
-          <div class="stat-box">
-            <div class="small">完成百分率</div>
-            <p class="stat-number">${percent(completedGoals.length, personGoals.length)}%</p>
-          </div>
-          <div class="stat-box">
-            <div class="small">成交機率</div>
-            <p class="stat-number">${chance}%</p>
-          </div>
+        <div class="annual-performance-line">年度業績總計 <strong>${formatMoney(performance.yearToDateRevenue)} 萬</strong></div>
+        <div class="compact-stat-line">
+          <span>完成小目標 <strong>${completedGoals.length}</strong></span>
+          <span>完成率 <strong>${percent(completedGoals.length, personGoals.length)}%</strong></span>
+          <span>成交機率 <strong>${chance}%</strong></span>
         </div>
         <div class="chips">
           ${Object.entries(byType).map(([type, count]) => `<span class="chip">${escapeHtml(type)}：${count}</span>`).join("")}
@@ -721,7 +724,7 @@ function exportData() {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
-  link.download = `大湳店月底統計-${month}.xls`;
+  link.download = `大湳店月統計-${month}.xls`;
   link.click();
   URL.revokeObjectURL(url);
 }
@@ -777,7 +780,7 @@ function buildExcelHtml(month, rows) {
         </style>
       </head>
       <body>
-        <p class="title">大湳店 ${month} 月底統計表</p>
+        <p class="title">大湳店 ${month} 月統計表</p>
         <p>月目標：業績 ${state.storeTarget.performance} 萬元；進案 ${state.storeTarget.listings} 件</p>
         <table>
           <thead>
@@ -789,9 +792,9 @@ function buildExcelHtml(month, rows) {
               <th>完成小目標</th>
               <th>完成百分率</th>
               <th>成交機率</th>
-              <th>當月業績目標（萬元）</th>
-              <th>當月目前業績（萬元）</th>
-              <th>年度累計業績（萬元）</th>
+              <th>本月業績目標（萬元）</th>
+              <th>本月業績（萬元）</th>
+              <th>年度業績總計（萬元）</th>
               <th>項目統計</th>
             </tr>
           </thead>
