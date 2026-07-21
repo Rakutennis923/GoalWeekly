@@ -1,5 +1,6 @@
 const STORAGE_KEY = "broker-goals-v1";
 const GOOGLE_SHEET_API = "https://script.google.com/macros/s/AKfycbzU9fh2dRcH8C1bd4qgYWQhg08G2HBRqADYuSWKK7-rr0ZhH3Am_BnuxpasbDPmAVBz/exec";
+const BUSINESS_ADMIN_API = "https://script.google.com/macros/s/AKfycby_YVfqeWsBQlHtkd1d5tILCXz3qTcIL7uAmlRI1K2Kp8xjVvxHTU7Jupw8O0nHUinz/exec";
 
 const quotes = [
   "成交不是奇蹟，是每天多做一點。",
@@ -29,6 +30,7 @@ const closingWeights = {
 };
 
 let state = normalizeState(loadState());
+let businessPartners = [];
 
 const els = {
   weeklyQuote: document.querySelector("#weeklyQuote"),
@@ -90,6 +92,7 @@ function init() {
 
   render();
   refreshFromCloud();
+  refreshBusinessPerformance();
 }
 
 function loadState() {
@@ -163,6 +166,28 @@ async function refreshFromCloud() {
     setSyncStatus(`已連上 Google Sheet，共 ${state.goals.length} 筆小目標`);
   } catch (error) {
     setSyncStatus(`暫時讀不到 Google Sheet，先使用本機資料：${error.message}`, true);
+  }
+}
+
+async function refreshBusinessPerformance() {
+  if (!BUSINESS_ADMIN_API) return;
+  try {
+    const response = await fetch(`${BUSINESS_ADMIN_API}?action=listAll&ts=${Date.now()}`, { cache: "no-store" });
+    if (!response.ok) throw new Error(`讀取失敗：${response.status}`);
+    const payload = await response.json();
+    if (!payload.ok || !payload.state || !Array.isArray(payload.state.partners)) {
+      throw new Error(payload.error || "夥伴績效資料格式不正確");
+    }
+    businessPartners = payload.state.partners.map((record) => ({
+      year: Number(record.year) || 0,
+      month: Number(record.month) || 0,
+      partnerName: normalizePersonName(record.partnerName),
+      annualRevenueTarget: Number(record.annualRevenueTarget) || 0,
+      actualRevenue: Number(record.actualRevenue) || 0
+    }));
+    render();
+  } catch (error) {
+    console.warn("業務行政系統資料暫時無法讀取", error);
   }
 }
 
@@ -492,6 +517,7 @@ function renderStats(goals) {
       const byType = summarizeTypes(personGoals);
       const chance = closingChance(personGoals);
       const batches = groupByInputBatch(personGoals).length;
+      const performance = performanceForPerson(person, els.monthFilter.value);
       const card = document.createElement("article");
       card.className = `stat-card ${chance < 60 ? "chance-low" : "chance-high"}`;
       card.innerHTML = `
@@ -501,6 +527,11 @@ function renderStats(goals) {
             <div class="meta">本月已輸入 ${batches} 次，最新日期 ${latestDate(personGoals)}</div>
           </div>
           <span class="badge">${completedGoals.length} / ${personGoals.length}</span>
+        </div>
+        <div class="performance-row">
+          <div class="performance-box"><div class="small">當月業績目標</div><p class="performance-number">${formatMoney(performance.monthlyTarget)} 萬</p></div>
+          <div class="performance-box"><div class="small">當月目前業績</div><p class="performance-number">${formatMoney(performance.monthlyRevenue)} 萬</p></div>
+          <div class="performance-box"><div class="small">年度累計業績</div><p class="performance-number">${formatMoney(performance.yearToDateRevenue)} 萬</p></div>
         </div>
         <div class="stat-row">
           <div class="stat-box">
@@ -521,7 +552,29 @@ function renderStats(goals) {
         </div>
       `;
       els.statsBoard.append(card);
-    });
+  });
+}
+
+function performanceForPerson(person, monthValue) {
+  const [year, month] = String(monthValue || "").split("-").map(Number);
+  const normalizedName = normalizePersonName(person);
+  const records = businessPartners.filter((record) => record.year === year && record.partnerName === normalizedName);
+  const selectedRecord = records.find((record) => record.month === month);
+  const latestTargetRecord = [...records].sort((a, b) => b.month - a.month).find((record) => record.annualRevenueTarget);
+  const annualTarget = Number(selectedRecord?.annualRevenueTarget) || Number(latestTargetRecord?.annualRevenueTarget) || 0;
+  return {
+    monthlyTarget: annualTarget / 12,
+    monthlyRevenue: Number(selectedRecord?.actualRevenue) || 0,
+    yearToDateRevenue: records.filter((record) => record.month <= month).reduce((sum, record) => sum + (Number(record.actualRevenue) || 0), 0)
+  };
+}
+
+function normalizePersonName(value) {
+  return String(value || "").replace(/\s+/g, "").trim();
+}
+
+function formatMoney(value) {
+  return Number(value || 0).toLocaleString("zh-TW", { maximumFractionDigits: 2 });
 }
 
 function compareNamesByStroke(nameA, nameB) {
@@ -678,6 +731,7 @@ function monthlyStatRows(goals) {
     .sort((a, b) => latestDate(b[1]).localeCompare(latestDate(a[1])) || a[0].localeCompare(b[0], "zh-Hant"))
     .map(([person, personGoals]) => {
       const completedGoals = personGoals.filter(isDone);
+      const performance = performanceForPerson(person, els.monthFilter.value);
       return {
         person,
         latestDate: latestDate(personGoals),
@@ -686,6 +740,9 @@ function monthlyStatRows(goals) {
         completedGoals: completedGoals.length,
         completionRate: percent(completedGoals.length, personGoals.length),
         closingChance: closingChance(personGoals),
+        monthlyTarget: performance.monthlyTarget,
+        monthlyRevenue: performance.monthlyRevenue,
+        yearToDateRevenue: performance.yearToDateRevenue,
         items: Object.entries(summarizeTypes(personGoals)).map(([type, count]) => `${type}：${count}`).join("、")
       };
     });
@@ -701,9 +758,12 @@ function buildExcelHtml(month, rows) {
       <td>${row.completedGoals}</td>
       <td>${row.completionRate}%</td>
       <td>${row.closingChance}%</td>
+      <td>${formatMoney(row.monthlyTarget)}</td>
+      <td>${formatMoney(row.monthlyRevenue)}</td>
+      <td>${formatMoney(row.yearToDateRevenue)}</td>
       <td>${escapeHtml(row.items)}</td>
     </tr>
-  `).join("") : `<tr><td colspan="8">本月尚無資料</td></tr>`;
+  `).join("") : `<tr><td colspan="11">本月尚無資料</td></tr>`;
 
   return `
     <html>
@@ -729,6 +789,9 @@ function buildExcelHtml(month, rows) {
               <th>完成小目標</th>
               <th>完成百分率</th>
               <th>成交機率</th>
+              <th>當月業績目標（萬元）</th>
+              <th>當月目前業績（萬元）</th>
+              <th>年度累計業績（萬元）</th>
               <th>項目統計</th>
             </tr>
           </thead>

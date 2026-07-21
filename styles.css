@@ -502,6 +502,27 @@ tr:last-child td {
   margin-bottom: 14px;
 }
 
+.performance-row {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.performance-box {
+  border: 1px solid #bfd7c9;
+  border-radius: 8px;
+  padding: 12px;
+  background: #eef8f2;
+}
+
+.performance-number {
+  color: var(--green);
+  font-size: 22px;
+  font-weight: 900;
+  margin: 4px 0 0;
+}
+
 .target-summary {
   margin-bottom: 14px;
 }
@@ -605,6 +626,7 @@ tr:last-child td {
   }
 
   .form-grid,
+  .performance-row,
   .stat-row {
     grid-template-columns: 1fr;
   }
