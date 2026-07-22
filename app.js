@@ -38,6 +38,9 @@ const els = {
   storePerformanceTarget: document.querySelector("#storePerformanceTarget"),
   storeListingTarget: document.querySelector("#storeListingTarget"),
   goalForm: document.querySelector("#goalForm"),
+  openGoalDrawer: document.querySelector("#openGoalDrawer"),
+  closeGoalDrawer: document.querySelector("#closeGoalDrawer"),
+  goalDrawerBackdrop: document.querySelector("#goalDrawerBackdrop"),
   personName: document.querySelector("#personName"),
   meetingDate: document.querySelector("#meetingDate"),
   goalType: document.querySelector("#goalType"),
@@ -48,7 +51,9 @@ const els = {
   finishPersonBtn: document.querySelector("#finishPersonBtn"),
   currentGoalSummary: document.querySelector("#currentGoalSummary"),
   teamBoard: document.querySelector("#teamBoard"),
+  teamPersonFilter: document.querySelector("#teamPersonFilter"),
   confirmList: document.querySelector("#confirmList"),
+  confirmPersonFilter: document.querySelector("#confirmPersonFilter"),
   statsBoard: document.querySelector("#statsBoard"),
   storeTargetSummary: document.querySelector("#storeTargetSummary"),
   syncStatus: document.querySelector("#syncStatus"),
@@ -82,6 +87,11 @@ function init() {
   });
 
   els.monthFilter.addEventListener("change", render);
+  els.teamPersonFilter.addEventListener("change", render);
+  els.confirmPersonFilter.addEventListener("change", render);
+  els.openGoalDrawer.addEventListener("click", () => setGoalDrawer(true));
+  els.closeGoalDrawer.addEventListener("click", () => setGoalDrawer(false));
+  els.goalDrawerBackdrop.addEventListener("click", () => setGoalDrawer(false));
   els.goalForm.addEventListener("submit", addGoal);
   els.personName.addEventListener("change", renderCurrentGoalSummary);
   els.meetingDate.addEventListener("change", renderCurrentGoalSummary);
@@ -93,6 +103,12 @@ function init() {
   render();
   refreshFromCloud();
   refreshBusinessPerformance();
+}
+
+function setGoalDrawer(open) {
+  els.goalForm.classList.toggle("drawer-open", open);
+  els.goalDrawerBackdrop.hidden = !open;
+  document.body.classList.toggle("drawer-active", open);
 }
 
 function loadState() {
@@ -296,13 +312,25 @@ function render() {
   const goals = state.goals
     .filter((goal) => goalMonthKey(goal) === month)
     .map((goal) => ({ ...goal, inputGroup: goal.inputGroup || goal.meetingDate }));
+  updatePersonFilters(goals);
   renderTeam(goals);
   renderConfirm(goals);
   renderStats(goals);
   renderCurrentGoalSummary();
 }
 
+function updatePersonFilters(goals) {
+  const names = [...new Set(goals.map((goal) => goal.person))].sort((a, b) => a.localeCompare(b, "zh-Hant"));
+  [[els.teamPersonFilter, "team"], [els.confirmPersonFilter, "confirm"]].forEach(([select]) => {
+    const previous = select.value;
+    select.innerHTML = `<option value="">點我選姓名</option>${names.map((name) => `<option value="${escapeHtml(name)}">${escapeHtml(name)}</option>`).join("")}`;
+    if (names.includes(previous)) select.value = previous;
+  });
+}
+
 function renderTeam(goals) {
+  const selectedPerson = els.teamPersonFilter.value;
+  goals = selectedPerson ? goals.filter((goal) => goal.person === selectedPerson) : [];
   const grouped = groupByPerson(goals);
   els.teamBoard.innerHTML = "";
   if (!Object.keys(grouped).length) {
@@ -447,6 +475,8 @@ function goalItemHtml(goal) {
 }
 
 function renderConfirm(goals) {
+  const selectedPerson = els.confirmPersonFilter.value;
+  goals = selectedPerson ? goals.filter((goal) => goal.person === selectedPerson) : [];
   const grouped = groupByPerson(goals);
   if (!Object.keys(grouped).length) {
     els.confirmList.innerHTML = "";

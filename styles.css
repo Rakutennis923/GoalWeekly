@@ -164,8 +164,14 @@ label {
 }
 
 .new-goal-label {
-  color: #1267c4;
-  font-size: 21px;
+  color: var(--red);
+  font-size: 22px;
+  font-weight: 900;
+}
+
+.target-count-label {
+  color: var(--red);
+  font-size: 22px;
   font-weight: 900;
 }
 
@@ -173,6 +179,18 @@ label {
   color: initial;
   font-size: 16px;
   font-weight: 700;
+}
+
+.person-picker {
+  width: min(360px, 100%);
+  margin-top: 12px;
+  color: var(--ink);
+  font-size: 18px;
+}
+
+.open-goal-drawer,
+.drawer-close {
+  display: none;
 }
 
 input,
@@ -686,6 +704,76 @@ tr:last-child td {
 }
 
 @media (max-width: 640px) {
+  body.drawer-active { overflow: hidden; }
+
+  .open-goal-drawer {
+    display: block;
+    width: 100%;
+    margin-bottom: 12px;
+    background: var(--green);
+    color: white;
+    border-color: var(--green);
+    font-weight: 900;
+  }
+
+  .split .goal-drawer {
+    position: fixed;
+    z-index: 1001;
+    top: 0;
+    right: 0;
+    width: min(92vw, 430px);
+    height: 100dvh;
+    overflow-y: auto;
+    border-radius: 0;
+    transform: translateX(105%);
+    transition: transform .25s ease;
+    padding: 54px 16px 24px;
+  }
+
+  .split .goal-drawer.drawer-open { transform: translateX(0); }
+
+  .drawer-backdrop:not([hidden]) {
+    display: block;
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    background: rgba(15, 23, 42, .52);
+  }
+
+  .drawer-close {
+    display: block;
+    position: absolute;
+    top: 10px;
+    right: 12px;
+    width: 38px;
+    min-height: 38px;
+    padding: 0;
+    font-size: 28px;
+    line-height: 1;
+  }
+
+  .goal-drawer .form-grid {
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+  }
+
+  .goal-drawer .meeting-field,
+  .goal-drawer .person-field,
+  .goal-drawer .new-goal-label,
+  .goal-drawer .target-count-label { grid-column: span 1; }
+
+  .goal-drawer .wide,
+  .goal-drawer #customTypeWrap { grid-column: 1 / -1; }
+
+  .goal-drawer .new-goal-label,
+  .goal-drawer .target-count-label { font-size: 19px; }
+
+  .goal-drawer .add-goal-action span {
+    font-size: 13px;
+    font-weight: 400;
+  }
+
+  #entry .helper { display: none; }
   .app-shell {
     width: 100%;
     padding: 0 10px 28px;

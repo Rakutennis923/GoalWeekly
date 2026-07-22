@@ -44,12 +44,19 @@
     </nav>
 
     <section id="entry" class="view active" aria-labelledby="entryTitle">
+      <button id="openGoalDrawer" class="open-goal-drawer" type="button">＋ 新增小目標</button>
+      <div id="goalDrawerBackdrop" class="drawer-backdrop" hidden></div>
       <div class="split">
-        <form id="goalForm" class="panel">
+        <form id="goalForm" class="panel goal-drawer">
+          <button id="closeGoalDrawer" class="drawer-close" type="button" aria-label="關閉新增小目標頁面">×</button>
           <h2 id="entryTitle">同一夥伴可連續輸入多個小目標</h2>
           <p class="form-note">星期一設定到星期四之前的小目標，星期四設定到下星期一的小目標</p>
           <div class="form-grid">
-            <label>
+            <label class="meeting-field">
+              會議日期
+              <input id="meetingDate" type="date" required>
+            </label>
+            <label class="person-field">
               夥伴姓名
               <select id="personName" required>
                 <option value="">點我選姓名</option>
@@ -78,10 +85,6 @@
                 <option>魏廉庭</option>
               </select>
             </label>
-            <label>
-              會議日期
-              <input id="meetingDate" type="date" required>
-            </label>
             <label class="new-goal-label">
               新增小目標
               <select id="goalType" required>
@@ -106,8 +109,8 @@
               自訂項目
               <input id="customType" placeholder="例：社區經營">
             </label>
-            <label>
-              目標數字
+            <label class="target-count-label">
+              數字
               <input id="targetCount" type="number" min="1" required value="1">
             </label>
             <label class="wide">
@@ -118,7 +121,7 @@
           <div class="form-actions">
             <div class="add-goal-action">
               <button class="primary" type="submit">點我加入此目標</button>
-              <span>可繼續加小目標哦</span>
+              <span>可連續加入小目標</span>
             </div>
             <button id="finishPersonBtn" type="button">輸入完成，換下一位</button>
           </div>
@@ -137,6 +140,9 @@
       <div class="section-head">
         <h2 id="teamTitle">夥伴本月小目標</h2>
         <p>每個人依輸入日期分頁，最新輸入放第 1 頁。</p>
+        <label class="person-picker">夥伴姓名
+          <select id="teamPersonFilter"><option value="">點我選姓名</option></select>
+        </label>
       </div>
       <div id="teamBoard" class="person-grid"></div>
     </section>
@@ -145,6 +151,9 @@
       <div class="section-head">
         <h2 id="confirmTitle">週一四確認覆盤</h2>
         <p>依夥伴姓名與最新會議日期排列，方便店長逐一確認。</p>
+        <label class="person-picker">夥伴姓名
+          <select id="confirmPersonFilter"><option value="">點我選姓名</option></select>
+        </label>
       </div>
       <div id="confirmList" class="person-grid"></div>
     </section>
