@@ -163,6 +163,18 @@ label {
   font-weight: 700;
 }
 
+.new-goal-label {
+  color: #1267c4;
+  font-size: 21px;
+  font-weight: 900;
+}
+
+.new-goal-label select {
+  color: initial;
+  font-size: 16px;
+  font-weight: 700;
+}
+
 input,
 select {
   width: 100%;

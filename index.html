@@ -52,7 +52,7 @@
             <label>
               夥伴姓名
               <select id="personName" required>
-                <option value="">請選擇夥伴</option>
+                <option value="">點我選姓名</option>
                 <option>王沛琳</option>
                 <option>王淑貞</option>
                 <option>冷蕙名</option>
@@ -82,9 +82,10 @@
               會議日期
               <input id="meetingDate" type="date" required>
             </label>
-            <label>
-              小目標項目
-              <select id="goalType">
+            <label class="new-goal-label">
+              新增小目標
+              <select id="goalType" required>
+                <option value="" selected disabled>點我選目標</option>
                 <option>進案</option>
                 <option>委託</option>
                 <option>帶看</option>
@@ -116,7 +117,7 @@
           </div>
           <div class="form-actions">
             <div class="add-goal-action">
-              <button class="primary" type="submit">加入此小目標</button>
+              <button class="primary" type="submit">點我加入此目標</button>
               <span>可繼續加小目標哦</span>
             </div>
             <button id="finishPersonBtn" type="button">輸入完成，換下一位</button>
@@ -127,7 +128,7 @@
         <aside class="panel helper">
           <h2>連續輸入更快</h2>
           <p>同一位夥伴只要輸入一次姓名，新增後姓名、會議日期會保留，可以直接繼續加下一個小目標。</p>
-          <p>按「加入此小目標」後，可繼續輸入同一位夥伴的其他小目標；全部輸入完成後，再按「輸入完成，換下一位」。</p>
+          <p>按「點我加入此目標」後，可繼續輸入同一位夥伴的其他小目標；全部輸入完成後，再按「輸入完成，換下一位」。</p>
         </aside>
       </div>
     </section>
